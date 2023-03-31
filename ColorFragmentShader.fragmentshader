@@ -1,0 +1,19 @@
+#version 330
+#extension GL_ARB_explicit_uniform_location : require
+in vec3 fragmentColor;
+in float distance;
+in float pawnView;
+in float ifLightMode;
+
+out vec4 color;
+
+void main(){
+	if(pawnView > 0.0)
+		if(ifLightMode > 0.0){
+			color = mix(vec4(fragmentColor, 1.0), vec4(0.0, 0.0, 1.0, 1.0), pow(1.6, distance) - 2.0);
+		}
+		else
+			color = mix(vec4(fragmentColor, 1.0), vec4(0.3, 0.53, 0.93, 1.0), pow(2.5, distance) - 2.0);
+	else
+		color = mix(vec4(fragmentColor, 1.0), vec4(0.0, 0.0, 1.0, 1.0), pow(1.5, distance - 0.5) - 2.0);
+}

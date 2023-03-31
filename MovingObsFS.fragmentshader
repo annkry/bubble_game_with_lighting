@@ -1,0 +1,111 @@
+#version 330
+in vec3 pos;
+in vec3 Nf;
+in vec3 Lf;
+in vec3 LfPawn;
+in vec3 Vf;
+in vec4 fragmentColor;
+in float distance;
+in float distancePawn;
+in float distanceFromCamera;
+in float lightMode;
+in float blink;
+in float ifPawnView;
+
+out vec4 color;
+
+in vec3[10] Ltable;
+in float[10] distanceTable;
+
+in vec3[5] LObsTable;
+in float[5] distanceObsTable;
+in vec3[5] Obscolor;
+
+void main(){
+	vec3 light_color = vec3(1.0, 1.0, 1.0);
+	
+	float ka = 0.4;
+	float kd = 0.4;
+	float ks = 0.7;
+
+	float ka2 = 0.95;
+
+	float ka1 = 0.6;
+
+	vec3 N = normalize(Nf);
+ 	vec3 L = normalize(Lf);
+	vec3 LPawn = normalize(LfPawn);
+ 	vec3 V = normalize(Vf);
+ 	vec3 R = reflect(-L, N);
+	vec3 RPawn = reflect(-LPawn, N);
+	if (blink > 0.0){
+		ka = 0.97;
+	} 
+	vec3 ambient  = ka * fragmentColor.xyz;
+ 	vec3 diffuse  = light_color * clamp(dot(N, L), 0.0, 1.0);
+ 	vec3 specular = ks * light_color * pow(clamp(dot(R, V), 0.0, 1.0), 50);
+
+	vec3 diffusePawn  = kd * vec3(1.0, 0.0, 0.91) * clamp(dot(N, LfPawn), 0.0, 1.0);
+ 	vec3 specularPawn = ks * vec3(1.0, 0.0, 0.91) * pow(clamp(dot(RPawn, V), 0.0, 1.0), 50);
+
+	if (blink > 0.0){
+		diffuse *= 0.7;
+	}
+	else{
+		diffuse *= kd;
+	}
+
+	vec3 vertColor = ambient + (1.0 / distance * distance) * diffuse  + (1.0 / distance * distance) * specular + 10 * (0.7 - clamp(distancePawn, 0.0, 0.7)) * diffusePawn + (0.7 - clamp(distancePawn, 0.0, 0.7)) * specularPawn;
+
+	if (blink == 0.0){
+		for(int i = 0; i < 5; i++){
+			vertColor += 15 * (0.7 - clamp(distanceObsTable[i], 0.0, 0.7)) * 0.3 * mix(vec4(Obscolor[i], fragmentColor.w), vec4(0.3, 0.53, 0.93, fragmentColor.w), pow(2.0, distancePawn) - 1.0).xyz * clamp(dot(N, LObsTable[i]), 0.0, 1.0);
+		}
+	}
+	color = vec4(vertColor, fragmentColor.w);
+	
+	float[10] cosBetaTable;
+	float[10] cosAlphaTable;
+
+	for(int i = 0; i < 10; i++){
+		cosAlphaTable[i] = dot(vec3(0.0, 1.0, 0.0), normalize(-Ltable[i]));
+		if (i > 4){
+			cosAlphaTable[i] = dot(vec3(0.0, -1.0, 0.0), normalize(-Ltable[i]));
+		}
+		cosBetaTable[i] = dot(N, normalize(Ltable[i]));
+	}
+
+	
+	vec3 colorTop = vec3(0.44, 0.53, 0.88);
+	vec3 colorBottom = vec3(0.93, 0.88, 0.23);
+	vec3 lightImpact1 = colorBottom * cosAlphaTable[0]*cosBetaTable[0]/(distanceTable[0]+0.3);
+	vec3 lightImpact2 = colorTop * cosAlphaTable[5]*cosBetaTable[5]/(distanceTable[5]+0.8);
+
+	for(int i = 1; i < 5; i++){
+		lightImpact1 += colorBottom * cosAlphaTable[i]*cosBetaTable[i]/(distanceTable[i]+0.3);
+	}
+
+	for(int i = 6; i < 10; i++){
+		lightImpact2 += colorTop * cosAlphaTable[i]*cosBetaTable[i]/(distanceTable[i]+0.8);
+	}
+
+	if (lightMode > 0.0){
+		vec4 colorToMix;
+		if(ifPawnView > 0.0){
+			colorToMix = mix(fragmentColor, vec4(0.3, 0.53, 0.93, fragmentColor.w), pow(2.0, distancePawn) - 1.0);
+		}
+		else{
+			colorToMix = fragmentColor;
+		}
+		ambient = mix(vec4(lightImpact2, fragmentColor.w), vec4(lightImpact1, fragmentColor.w), 0.5).xyz;
+		ambient = mix(ka2 * colorToMix, vec4(ambient, fragmentColor.w), 0.3).xyz;
+		color = vec4(ambient, fragmentColor.w);
+	}
+
+	if(ifPawnView > 0.0){
+		color = mix(color, vec4(0.18, 0.21, 0.73, fragmentColor.w), pow(1.5, distanceFromCamera) - 1.0);
+	}
+	else
+		color = mix(color, vec4(0.09, 0.13, 0.78, fragmentColor.w), pow(1.5, distanceFromCamera - 0.5) - 1.7);
+
+}
