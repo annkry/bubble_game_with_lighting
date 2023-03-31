@@ -35,4 +35,7 @@ The pawn we move will glow intense pink, allowing us to better see nearby balls 
 The game will have two levels, where in the second level the maximum speed of the balls will be increased and there will be more balls.
 
 To compile: make  
-To run: ./main
+To run: ./main  
+
+Here is a visualization.  
+![alt text](bubble.JPG)
